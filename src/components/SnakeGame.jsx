@@ -11,6 +11,7 @@ export default function SnakeGame() {
     overlayHidden,
     boardShaking,
     speedFactor,
+    speedIntensity,
     audioSupported,
     musicEnabled,
     musicActive,
@@ -23,7 +24,11 @@ export default function SnakeGame() {
   } = useSnakeGame();
 
   return (
-    <main className="game-shell" aria-label="Juego de la serpiente">
+    <main
+      className="game-shell"
+      aria-label="Juego de la serpiente"
+      style={{ '--speed-glow': speedIntensity.toFixed(3) }}
+    >
       <div className="topbar">
         <h1 className="title">Snake</h1>
         <div className="stats" aria-live="polite">

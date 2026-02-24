@@ -4,6 +4,7 @@ import {
   BASE_TICK_MS,
   BOARD_PX,
   DIRECTIONS,
+  MIN_TICK_MS,
   OPPOSITES,
   STORAGE_KEY
 } from '../lib/constants.js';
@@ -334,6 +335,10 @@ export function useSnakeGame() {
   const overlay = getOverlayCopy(game.status);
   const overlayHidden = game.status === 'running';
   const speedFactor = (BASE_TICK_MS / game.tickMs).toFixed(1).replace('.0', '');
+  const speedIntensity = Math.min(
+    1,
+    Math.max(0, (BASE_TICK_MS - game.tickMs) / (BASE_TICK_MS - MIN_TICK_MS))
+  );
   const audioSupported =
     typeof window !== 'undefined' && Boolean(window.AudioContext || window.webkitAudioContext);
   const musicActive = musicEnabled && game.status === 'running';
@@ -346,6 +351,7 @@ export function useSnakeGame() {
     overlayHidden,
     boardShaking,
     speedFactor,
+    speedIntensity,
     audioSupported,
     musicEnabled,
     musicActive,
