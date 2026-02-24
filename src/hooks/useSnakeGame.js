@@ -7,7 +7,7 @@ import {
   OPPOSITES,
   STORAGE_KEY
 } from '../lib/constants.js';
-import { drawGame } from '../lib/drawGame.js';
+import { createEatParticles, drawGame, stepParticles } from '../lib/drawGame.js';
 import { createInitialGame, stepGameState } from '../lib/gameLogic.js';
 
 function readBestScore() {
@@ -73,9 +73,11 @@ function getOverlayCopy(status) {
 export function useSnakeGame() {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
+  const particlesRef = useRef([]);
   const gameTimerRef = useRef(null);
   const musicTimerRef = useRef(null);
   const renderFrameRef = useRef(null);
+  const renderLastTimeRef = useRef(null);
   const audioContextRef = useRef(null);
   const musicStepRef = useRef(0);
   const musicEnabledRef = useRef(false);
@@ -179,6 +181,7 @@ export function useSnakeGame() {
         playFx(180, 0.15, 'square', 0.03);
         setTimeout(() => playFx(130, 0.22, 'square', 0.03), 90);
       } else if (outcome.ateFood) {
+        particlesRef.current = particlesRef.current.concat(createEatParticles(prev.food));
         playFx(880, 0.06, 'triangle', 0.018);
       }
 
@@ -203,8 +206,20 @@ export function useSnakeGame() {
     const ctx = canvas.getContext('2d');
 
     const render = () => {
+      const now = performance.now();
+      const lastTime = renderLastTimeRef.current ?? now;
+      const dt = now - lastTime;
+      renderLastTimeRef.current = now;
+
+      if (particlesRef.current.length > 0) {
+        particlesRef.current = stepParticles(particlesRef.current, dt);
+      }
+
       if (gameRef.current) {
-        drawGame(ctx, gameRef.current);
+        drawGame(ctx, gameRef.current, {
+          timeMs: now,
+          particles: particlesRef.current
+        });
       }
       renderFrameRef.current = requestAnimationFrame(render);
     };
@@ -216,6 +231,7 @@ export function useSnakeGame() {
         cancelAnimationFrame(renderFrameRef.current);
         renderFrameRef.current = null;
       }
+      renderLastTimeRef.current = null;
     };
   }, []);
 
@@ -282,6 +298,7 @@ export function useSnakeGame() {
         cancelAnimationFrame(renderFrameRef.current);
         renderFrameRef.current = null;
       }
+      renderLastTimeRef.current = null;
     },
     []
   );

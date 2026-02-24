@@ -30,6 +30,54 @@ function drawBackground(ctx) {
   }
 }
 
+export function createEatParticles(foodCell) {
+  const cx = foodCell.x * GRID_SIZE + GRID_SIZE / 2;
+  const cy = foodCell.y * GRID_SIZE + GRID_SIZE / 2;
+  const particles = [];
+
+  for (let i = 0; i < 12; i += 1) {
+    const angle = (Math.PI * 2 * i) / 12 + (Math.random() * 0.35 - 0.175);
+    const speed = 48 + Math.random() * 85;
+    particles.push({
+      x: cx,
+      y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 220 + Math.random() * 180,
+      maxLife: 220 + Math.random() * 180,
+      size: 1.8 + Math.random() * 2.6,
+      hue: i % 3 === 0 ? 340 : i % 3 === 1 ? 180 : 130
+    });
+  }
+
+  return particles;
+}
+
+export function stepParticles(particles, dtMs) {
+  if (!particles.length) return particles;
+
+  const dt = Math.min(50, dtMs) / 1000;
+
+  return particles
+    .map((particle) => {
+      const nextLife = particle.life - dtMs;
+      if (nextLife <= 0) return null;
+
+      const drag = 0.985;
+      const gravity = 80;
+
+      return {
+        ...particle,
+        x: particle.x + particle.vx * dt,
+        y: particle.y + particle.vy * dt,
+        vx: particle.vx * drag,
+        vy: particle.vy * drag + gravity * dt,
+        life: nextLife
+      };
+    })
+    .filter(Boolean);
+}
+
 function drawGrid(ctx) {
   ctx.save();
   ctx.lineWidth = 1;
@@ -50,12 +98,12 @@ function drawGrid(ctx) {
   ctx.restore();
 }
 
-function drawFood(ctx, food) {
+function drawFood(ctx, food, timeMs) {
   const x = food.x * GRID_SIZE;
   const y = food.y * GRID_SIZE;
   const cx = x + GRID_SIZE / 2;
   const cy = y + GRID_SIZE / 2;
-  const pulse = 0.9 + Math.sin(performance.now() / 180) * 0.08;
+  const pulse = 0.9 + Math.sin(timeMs / 180) * 0.08;
 
   ctx.save();
 
@@ -90,13 +138,37 @@ function drawFood(ctx, food) {
   ctx.restore();
 }
 
-function drawSnake(ctx, snake, direction, status) {
+function drawParticles(ctx, particles) {
+  if (!particles || particles.length === 0) return;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  for (const p of particles) {
+    const alpha = Math.max(0, p.life / p.maxLife);
+    const radius = p.size * (0.6 + alpha * 0.9);
+
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = `hsla(${p.hue}, 100%, 65%, ${alpha * 0.6})`;
+    ctx.fillStyle = `hsla(${p.hue}, 100%, 70%, ${alpha * 0.9})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawSnake(ctx, snake, direction, status, timeMs) {
   const flash = status === 'gameover';
 
   snake.forEach((part, index) => {
     const x = part.x * GRID_SIZE;
     const y = part.y * GRID_SIZE;
     const isHead = index === 0;
+    const pulse = 0.7 + Math.sin(timeMs / 180 + index * 0.65) * 0.3;
+    const inset = isHead ? 0.9 - pulse * 0.15 : 1;
+    const size = GRID_SIZE - inset * 2;
 
     const bodyGradient = ctx.createLinearGradient(x, y, x + GRID_SIZE, y + GRID_SIZE);
     if (flash) {
@@ -113,18 +185,18 @@ function drawSnake(ctx, snake, direction, status) {
     }
 
     ctx.shadowColor = flash ? 'rgba(255,77,109,0.5)' : 'rgba(21,212,138,0.35)';
-    ctx.shadowBlur = isHead ? 14 : 9;
+    ctx.shadowBlur = (isHead ? 11 : 7) + pulse * (isHead ? 7 : 4);
     ctx.fillStyle = bodyGradient;
-    roundRect(ctx, x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2, isHead ? 7 : 6);
+    roundRect(ctx, x + inset, y + inset, size, size, isHead ? 7 : 6);
     ctx.fill();
 
     ctx.shadowBlur = 0;
     ctx.strokeStyle = flash ? 'rgba(255,255,255,0.12)' : 'rgba(225,255,246,0.18)';
     ctx.lineWidth = 1;
-    roundRect(ctx, x + 1.5, y + 1.5, GRID_SIZE - 3, GRID_SIZE - 3, isHead ? 7 : 6);
+    roundRect(ctx, x + inset + 0.5, y + inset + 0.5, size - 1, size - 1, isHead ? 7 : 6);
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.fillStyle = `rgba(255,255,255,${0.04 + pulse * 0.06})`;
     roundRect(ctx, x + 4, y + 4, GRID_SIZE - 10, 5, 3);
     ctx.fill();
 
@@ -156,12 +228,16 @@ function drawSnake(ctx, snake, direction, status) {
   });
 }
 
-export function drawGame(ctx, game) {
+export function drawGame(ctx, game, renderState = {}) {
+  const timeMs = renderState.timeMs ?? performance.now();
+  const particles = renderState.particles ?? [];
+
   ctx.clearRect(0, 0, BOARD_PX, BOARD_PX);
   drawBackground(ctx);
   drawGrid(ctx);
-  drawFood(ctx, game.food);
-  drawSnake(ctx, game.snake, game.direction, game.status);
+  drawFood(ctx, game.food, timeMs);
+  drawParticles(ctx, particles);
+  drawSnake(ctx, game.snake, game.direction, game.status, timeMs);
 
   if (game.status === 'gameover') {
     ctx.save();
