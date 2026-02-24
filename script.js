@@ -9,6 +9,7 @@ const speedEl = document.getElementById('speed');
 const startBtn = document.getElementById('start-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const restartBtn = document.getElementById('restart-btn');
+const musicBtn = document.getElementById('music-btn');
 
 const GRID_SIZE = 24;
 const CELLS = canvas.width / GRID_SIZE;
@@ -37,6 +38,29 @@ let bestScore = Number(localStorage.getItem(STORAGE_KEY) || 0);
 let tickMs;
 let timer = null;
 let status;
+let audioContext = null;
+let musicTimer = null;
+let musicEnabled = false;
+let musicStep = 0;
+
+const MUSIC_PATTERN = [
+  { freq: 392.0, len: 1 },
+  { freq: 523.25, len: 1 },
+  { freq: 659.25, len: 1 },
+  { freq: 523.25, len: 1 },
+  { freq: 392.0, len: 1 },
+  { freq: 329.63, len: 1 },
+  { freq: 392.0, len: 1 },
+  { freq: 0, len: 1 },
+  { freq: 440.0, len: 1 },
+  { freq: 587.33, len: 1 },
+  { freq: 698.46, len: 1 },
+  { freq: 587.33, len: 1 },
+  { freq: 440.0, len: 1 },
+  { freq: 349.23, len: 1 },
+  { freq: 440.0, len: 1 },
+  { freq: 0, len: 1 }
+];
 
 function initState() {
   const mid = Math.floor(CELLS / 2);
@@ -54,6 +78,7 @@ function initState() {
   updateHud();
   showOverlay('Presiona Iniciar', 'Usa flechas o WASD. Espacio para pausar.');
   draw();
+  updateMusicButton();
 }
 
 function spawnFood() {
@@ -96,12 +121,14 @@ function startGame() {
   status = 'running';
   hideOverlay();
   startLoop();
+  syncMusic();
 }
 
 function pauseGame() {
   if (status !== 'running') return;
   status = 'paused';
   clearLoop();
+  syncMusic();
   showOverlay('Pausado', 'Presiona Espacio o Iniciar para continuar.');
 }
 
@@ -110,6 +137,7 @@ function resumeGame() {
   status = 'running';
   hideOverlay();
   startLoop();
+  syncMusic();
 }
 
 function togglePause() {
@@ -122,18 +150,22 @@ function togglePause() {
 
 function restartGame() {
   clearLoop();
+  stopMusic();
   initState();
 }
 
 function gameOver() {
   status = 'gameover';
   clearLoop();
+  stopMusic();
   if (score > bestScore) {
     bestScore = score;
     localStorage.setItem(STORAGE_KEY, String(bestScore));
   }
   updateHud();
   showOverlay('Perdiste', 'Pulsa Reiniciar o Iniciar para jugar otra vez.');
+  playTone(180, 0.15, 'square', 0.03);
+  setTimeout(() => playTone(130, 0.22, 'square', 0.03), 90);
 }
 
 function step() {
@@ -162,6 +194,7 @@ function step() {
   snake.unshift(nextHead);
   if (grows) {
     score += 10;
+    playTone(880, 0.06, 'triangle', 0.018);
     food = spawnFood();
     const newTick = Math.max(65, 130 - Math.floor(score / 30) * 5);
     if (newTick !== tickMs) {
@@ -293,6 +326,92 @@ function keyToDirection(key) {
   }
 }
 
+function getAudioContext() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return null;
+  if (!audioContext) {
+    audioContext = new AudioCtx();
+  }
+  return audioContext;
+}
+
+function playTone(freq, duration = 0.1, type = 'square', volume = 0.02) {
+  if (!musicEnabled) return;
+  const ctx = getAudioContext();
+  if (!ctx || !freq) return;
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + duration + 0.02);
+}
+
+function playMusicTick() {
+  if (!musicEnabled || status !== 'running') return;
+  const note = MUSIC_PATTERN[musicStep % MUSIC_PATTERN.length];
+  musicStep += 1;
+  if (note.freq > 0) {
+    playTone(note.freq, 0.14 * note.len, 'square', 0.012);
+  }
+}
+
+function startMusic() {
+  if (!musicEnabled || status !== 'running' || musicTimer !== null) return;
+  const ctx = getAudioContext();
+  if (!ctx) {
+    musicEnabled = false;
+    updateMusicButton();
+    return;
+  }
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+  playMusicTick();
+  musicTimer = setInterval(playMusicTick, 170);
+}
+
+function stopMusic() {
+  if (musicTimer !== null) {
+    clearInterval(musicTimer);
+    musicTimer = null;
+  }
+}
+
+function syncMusic() {
+  if (musicEnabled && status === 'running') {
+    startMusic();
+  } else {
+    stopMusic();
+  }
+  updateMusicButton();
+}
+
+function updateMusicButton() {
+  const supported = !!(window.AudioContext || window.webkitAudioContext);
+  if (!supported) {
+    musicBtn.textContent = 'Musica: N/D';
+    musicBtn.disabled = true;
+    return;
+  }
+
+  musicBtn.disabled = false;
+  const active = musicEnabled && status === 'running';
+  musicBtn.textContent = `Musica: ${musicEnabled ? 'On' : 'Off'}${active ? ' (playing)' : ''}`;
+}
+
 document.addEventListener('keydown', (event) => {
   const dir = keyToDirection(event.key);
   if (dir) {
@@ -333,6 +452,20 @@ pauseBtn.addEventListener('click', () => {
 
 restartBtn.addEventListener('click', () => {
   restartGame();
+});
+
+musicBtn.addEventListener('click', () => {
+  musicEnabled = !musicEnabled;
+  if (!musicEnabled) {
+    stopMusic();
+  } else {
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    syncMusic();
+  }
+  updateMusicButton();
 });
 
 document.querySelectorAll('[data-dir]').forEach((button) => {
