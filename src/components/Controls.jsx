@@ -22,12 +22,15 @@ export default function Controls({
   audioSupported,
   musicEnabled,
   musicActive,
+  theme,
+  themeOptions,
   onStart,
   onResume,
   onTogglePause,
   onRestart,
   onToggleMusic,
-  onDirection
+  onDirection,
+  onThemeChange
 }) {
   return (
     <>
@@ -62,7 +65,24 @@ export default function Controls({
               : 'Musica: N/D'}
           </button>
         </div>
-        <div className="hint">Controles: Flechas / WASD / Espacio</div>
+        <div className="controls-side">
+          <label className="theme-picker">
+            <span>Tema</span>
+            <select
+              className="theme-select"
+              value={theme}
+              onChange={(event) => onThemeChange(event.target.value)}
+              aria-label="Seleccionar tema visual"
+            >
+              {themeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="hint">Controles: Flechas / WASD / Espacio</div>
+        </div>
       </div>
 
       <div className="touch-pad" aria-label="Controles tactiles">

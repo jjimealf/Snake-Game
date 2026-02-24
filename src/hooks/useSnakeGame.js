@@ -71,9 +71,10 @@ function getOverlayCopy(status) {
   }
 }
 
-export function useSnakeGame() {
+export function useSnakeGame(theme = 'retro') {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
+  const themeRef = useRef(theme);
   const particlesRef = useRef([]);
   const gameTimerRef = useRef(null);
   const musicTimerRef = useRef(null);
@@ -89,6 +90,7 @@ export function useSnakeGame() {
   const [boardShaking, setBoardShaking] = useState(false);
 
   gameRef.current = game;
+  themeRef.current = theme;
   musicEnabledRef.current = musicEnabled;
 
   function clearGameLoop() {
@@ -118,7 +120,7 @@ export function useSnakeGame() {
       shakeTimeoutRef.current = setTimeout(() => {
         setBoardShaking(false);
         shakeTimeoutRef.current = null;
-      }, 320);
+      }, 460);
     });
   }
 
@@ -202,7 +204,9 @@ export function useSnakeGame() {
         playFx(180, 0.15, 'square', 0.03);
         setTimeout(() => playFx(130, 0.22, 'square', 0.03), 90);
       } else if (outcome.ateFood) {
-        particlesRef.current = particlesRef.current.concat(createEatParticles(prev.food));
+        particlesRef.current = particlesRef.current.concat(
+          createEatParticles(prev.food, themeRef.current)
+        );
         playFx(880, 0.06, 'triangle', 0.018);
       }
 
@@ -239,7 +243,8 @@ export function useSnakeGame() {
       if (gameRef.current) {
         drawGame(ctx, gameRef.current, {
           timeMs: now,
-          particles: particlesRef.current
+          particles: particlesRef.current,
+          theme: themeRef.current
         });
       }
       renderFrameRef.current = requestAnimationFrame(render);

@@ -1,4 +1,5 @@
 import { BOARD_PX, CELLS, GRID_SIZE } from './constants.js';
+import { getCanvasPalette } from './themes.js';
 
 function roundRect(context, x, y, width, height, radius) {
   context.beginPath();
@@ -10,27 +11,28 @@ function roundRect(context, x, y, width, height, radius) {
   context.closePath();
 }
 
-function drawBackground(ctx) {
+function drawBackground(ctx, palette) {
   const gradient = ctx.createLinearGradient(0, 0, BOARD_PX, BOARD_PX);
-  gradient.addColorStop(0, '#050812');
-  gradient.addColorStop(0.5, '#090f1f');
-  gradient.addColorStop(1, '#04060d');
+  gradient.addColorStop(0, palette.background[0]);
+  gradient.addColorStop(0.5, palette.background[1]);
+  gradient.addColorStop(1, palette.background[2]);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, BOARD_PX, BOARD_PX);
 
   for (let y = 0; y < CELLS; y += 1) {
     for (let x = 0; x < CELLS; x += 1) {
       if ((x + y) % 2 === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.012)';
+        ctx.fillStyle = palette.checkerA;
       } else {
-        ctx.fillStyle = 'rgba(57,214,255,0.01)';
+        ctx.fillStyle = palette.checkerB;
       }
       ctx.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
     }
   }
 }
 
-export function createEatParticles(foodCell) {
+export function createEatParticles(foodCell, theme = 'retro') {
+  const palette = getCanvasPalette(theme);
   const cx = foodCell.x * GRID_SIZE + GRID_SIZE / 2;
   const cy = foodCell.y * GRID_SIZE + GRID_SIZE / 2;
   const particles = [];
@@ -46,7 +48,7 @@ export function createEatParticles(foodCell) {
       life: 220 + Math.random() * 180,
       maxLife: 220 + Math.random() * 180,
       size: 1.8 + Math.random() * 2.6,
-      hue: i % 3 === 0 ? 340 : i % 3 === 1 ? 180 : 130
+      hue: palette.particles.hues[i % palette.particles.hues.length]
     });
   }
 
@@ -78,13 +80,13 @@ export function stepParticles(particles, dtMs) {
     .filter(Boolean);
 }
 
-function drawGrid(ctx) {
+function drawGrid(ctx, palette) {
   ctx.save();
   ctx.lineWidth = 1;
 
   for (let i = 0; i <= CELLS; i += 1) {
     const p = i * GRID_SIZE + 0.5;
-    ctx.strokeStyle = i % 4 === 0 ? 'rgba(57,214,255,0.12)' : 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = i % 4 === 0 ? palette.gridMajor : palette.gridMinor;
     ctx.beginPath();
     ctx.moveTo(p, 0);
     ctx.lineTo(p, BOARD_PX);
@@ -98,7 +100,7 @@ function drawGrid(ctx) {
   ctx.restore();
 }
 
-function drawFood(ctx, food, timeMs) {
+function drawFood(ctx, food, timeMs, palette) {
   const x = food.x * GRID_SIZE;
   const y = food.y * GRID_SIZE;
   const cx = x + GRID_SIZE / 2;
@@ -107,30 +109,30 @@ function drawFood(ctx, food, timeMs) {
 
   ctx.save();
 
-  ctx.shadowColor = 'rgba(255,77,109,0.8)';
+  ctx.shadowColor = palette.food.halo;
   ctx.shadowBlur = 18;
-  ctx.fillStyle = 'rgba(255,77,109,0.22)';
+  ctx.fillStyle = palette.food.haloFill;
   ctx.beginPath();
   ctx.arc(cx, cy, GRID_SIZE * 0.48 * pulse, 0, Math.PI * 2);
   ctx.fill();
 
   const fill = ctx.createRadialGradient(cx - 3, cy - 4, 2, cx, cy, GRID_SIZE * 0.36);
-  fill.addColorStop(0, '#ffd9e1');
-  fill.addColorStop(0.28, '#ff8ba3');
-  fill.addColorStop(0.65, '#ff4d6d');
-  fill.addColorStop(1, '#be1038');
+  fill.addColorStop(0, palette.food.gradient[0]);
+  fill.addColorStop(0.28, palette.food.gradient[1]);
+  fill.addColorStop(0.65, palette.food.gradient[2]);
+  fill.addColorStop(1, palette.food.gradient[3]);
   ctx.shadowBlur = 12;
-  ctx.shadowColor = 'rgba(255,77,109,0.65)';
+  ctx.shadowColor = palette.food.coreGlow;
   ctx.fillStyle = fill;
   ctx.beginPath();
   ctx.arc(cx, cy, GRID_SIZE * 0.32, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.shadowBlur = 0;
-  ctx.fillStyle = '#58f1ab';
+  ctx.fillStyle = palette.food.stem;
   ctx.fillRect(x + GRID_SIZE * 0.48, y + GRID_SIZE * 0.08, 4, 8);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fillStyle = palette.food.highlight;
   ctx.beginPath();
   ctx.arc(cx - 4, cy - 4, 2.1, 0, Math.PI * 2);
   ctx.fill();
@@ -159,7 +161,7 @@ function drawParticles(ctx, particles) {
   ctx.restore();
 }
 
-function drawSnake(ctx, snake, direction, status, timeMs) {
+function drawSnake(ctx, snake, direction, status, timeMs, palette) {
   const flash = status === 'gameover';
 
   snake.forEach((part, index) => {
@@ -172,31 +174,31 @@ function drawSnake(ctx, snake, direction, status, timeMs) {
 
     const bodyGradient = ctx.createLinearGradient(x, y, x + GRID_SIZE, y + GRID_SIZE);
     if (flash) {
-      bodyGradient.addColorStop(0, '#ff7088');
-      bodyGradient.addColorStop(1, '#6e132b');
+      bodyGradient.addColorStop(0, palette.snake.flashGradient[0]);
+      bodyGradient.addColorStop(1, palette.snake.flashGradient[1]);
     } else if (isHead) {
-      bodyGradient.addColorStop(0, '#78ffe2');
-      bodyGradient.addColorStop(0.55, '#27e3a2');
-      bodyGradient.addColorStop(1, '#0f6a4b');
+      bodyGradient.addColorStop(0, palette.snake.headGradient[0]);
+      bodyGradient.addColorStop(0.55, palette.snake.headGradient[1]);
+      bodyGradient.addColorStop(1, palette.snake.headGradient[2]);
     } else {
-      bodyGradient.addColorStop(0, '#41f3ba');
-      bodyGradient.addColorStop(0.55, '#14c98a');
-      bodyGradient.addColorStop(1, '#0a6c53');
+      bodyGradient.addColorStop(0, palette.snake.bodyGradient[0]);
+      bodyGradient.addColorStop(0.55, palette.snake.bodyGradient[1]);
+      bodyGradient.addColorStop(1, palette.snake.bodyGradient[2]);
     }
 
-    ctx.shadowColor = flash ? 'rgba(255,77,109,0.5)' : 'rgba(21,212,138,0.35)';
+    ctx.shadowColor = flash ? palette.snake.flashGlow : palette.snake.glow;
     ctx.shadowBlur = (isHead ? 11 : 7) + pulse * (isHead ? 7 : 4);
     ctx.fillStyle = bodyGradient;
     roundRect(ctx, x + inset, y + inset, size, size, isHead ? 7 : 6);
     ctx.fill();
 
     ctx.shadowBlur = 0;
-    ctx.strokeStyle = flash ? 'rgba(255,255,255,0.12)' : 'rgba(225,255,246,0.18)';
+    ctx.strokeStyle = flash ? palette.snake.flashStroke : palette.snake.stroke;
     ctx.lineWidth = 1;
     roundRect(ctx, x + inset + 0.5, y + inset + 0.5, size - 1, size - 1, isHead ? 7 : 6);
     ctx.stroke();
 
-    ctx.fillStyle = `rgba(255,255,255,${0.04 + pulse * 0.06})`;
+    ctx.fillStyle = `rgba(${palette.snake.glossBase},${0.04 + pulse * 0.06})`;
     roundRect(ctx, x + 4, y + 4, GRID_SIZE - 10, 5, 3);
     ctx.fill();
 
@@ -207,7 +209,7 @@ function drawSnake(ctx, snake, direction, status, timeMs) {
     const eyeOffsetY2 = direction === 'down' ? GRID_SIZE - 10 : GRID_SIZE - 12;
     const xEye = x + eyeOffsetX;
 
-    ctx.fillStyle = '#e8fbff';
+    ctx.fillStyle = palette.snake.eyes;
     ctx.beginPath();
     ctx.arc(xEye, y + eyeOffsetY1, 2.2, 0, Math.PI * 2);
     ctx.arc(xEye, y + eyeOffsetY2, 2.2, 0, Math.PI * 2);
@@ -220,7 +222,7 @@ function drawSnake(ctx, snake, direction, status, timeMs) {
     if (direction === 'up') pupilY = -0.6;
     if (direction === 'down') pupilY = 0.6;
 
-    ctx.fillStyle = '#03140f';
+    ctx.fillStyle = palette.snake.pupil;
     ctx.beginPath();
     ctx.arc(xEye + pupilX, y + eyeOffsetY1 + pupilY, 0.9, 0, Math.PI * 2);
     ctx.arc(xEye + pupilX, y + eyeOffsetY2 + pupilY, 0.9, 0, Math.PI * 2);
@@ -231,17 +233,18 @@ function drawSnake(ctx, snake, direction, status, timeMs) {
 export function drawGame(ctx, game, renderState = {}) {
   const timeMs = renderState.timeMs ?? performance.now();
   const particles = renderState.particles ?? [];
+  const palette = getCanvasPalette(renderState.theme);
 
   ctx.clearRect(0, 0, BOARD_PX, BOARD_PX);
-  drawBackground(ctx);
-  drawGrid(ctx);
-  drawFood(ctx, game.food, timeMs);
+  drawBackground(ctx, palette);
+  drawGrid(ctx, palette);
+  drawFood(ctx, game.food, timeMs, palette);
   drawParticles(ctx, particles);
-  drawSnake(ctx, game.snake, game.direction, game.status, timeMs);
+  drawSnake(ctx, game.snake, game.direction, game.status, timeMs, palette);
 
   if (game.status === 'gameover') {
     ctx.save();
-    ctx.fillStyle = 'rgba(255, 77, 109, 0.08)';
+    ctx.fillStyle = palette.gameOverTint;
     ctx.fillRect(0, 0, BOARD_PX, BOARD_PX);
     ctx.restore();
   }

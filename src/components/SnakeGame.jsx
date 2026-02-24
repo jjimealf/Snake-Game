@@ -1,8 +1,26 @@
+import { useEffect, useState } from 'react';
 import Controls from './Controls.jsx';
 import GameCanvas from './GameCanvas.jsx';
 import { useSnakeGame } from '../hooks/useSnakeGame.js';
+import {
+  getThemeCssVars,
+  isValidTheme,
+  THEME_OPTIONS,
+  THEME_STORAGE_KEY
+} from '../lib/themes.js';
+
+function getInitialTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    if (saved && isValidTheme(saved)) return saved;
+  } catch {
+    // Ignore storage failures.
+  }
+  return 'retro';
+}
 
 export default function SnakeGame() {
+  const [theme, setTheme] = useState(getInitialTheme);
   const {
     boardSize,
     game,
@@ -21,12 +39,29 @@ export default function SnakeGame() {
     togglePause,
     restartGame,
     toggleMusic
-  } = useSnakeGame();
+  } = useSnakeGame(theme);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+
+    const cssVars = getThemeCssVars(theme);
+    for (const [name, value] of Object.entries(cssVars)) {
+      root.style.setProperty(name, value);
+    }
+
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [theme]);
 
   return (
     <main
       className="game-shell"
       aria-label="Juego de la serpiente"
+      data-theme={theme}
       style={{ '--speed-glow': speedIntensity.toFixed(3) }}
     >
       <div className="topbar">
@@ -58,12 +93,15 @@ export default function SnakeGame() {
         audioSupported={audioSupported}
         musicEnabled={musicEnabled}
         musicActive={musicActive}
+        theme={theme}
+        themeOptions={THEME_OPTIONS}
         onStart={startGame}
         onResume={resumeGame}
         onTogglePause={togglePause}
         onRestart={restartGame}
         onToggleMusic={toggleMusic}
         onDirection={handleDirection}
+        onThemeChange={setTheme}
       />
     </main>
   );

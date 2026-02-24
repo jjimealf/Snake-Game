@@ -16,6 +16,8 @@
   --shadow: 0 26px 70px rgba(0, 0, 0, 0.55);
   --radius: 20px;
   --speed-glow: 0;
+  --theme-option-bg: #0a1020;
+  --theme-option-text: #eef3ff;
 }
 
 * {
@@ -175,7 +177,33 @@ body::after {
 }
 
 .board-wrap.is-shaking {
-  animation: board-shake 320ms cubic-bezier(0.2, 0.9, 0.25, 1);
+  animation: board-shake 460ms cubic-bezier(0.2, 0.9, 0.25, 1);
+  will-change: transform, box-shadow, filter;
+  filter: saturate(1.15);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    inset 0 0 calc(24px + var(--speed-glow) * 34px)
+      rgba(57, 214, 255, calc(0.03 + var(--speed-glow) * 0.12)),
+    0 18px 32px rgba(0, 0, 0, 0.35),
+    0 0 calc(10px + var(--speed-glow) * 24px)
+      rgba(57, 214, 255, calc(0.02 + var(--speed-glow) * 0.14)),
+    0 0 28px rgba(255, 77, 109, 0.2);
+}
+
+.board-wrap.is-shaking::before {
+  opacity: 1;
+}
+
+.board-wrap.is-shaking::after {
+  opacity: 0.45;
+}
+
+.board-wrap.is-shaking canvas {
+  animation: board-hit-flash 460ms ease-out;
+}
+
+.board-wrap.is-shaking .overlay-card {
+  animation: overlay-hit 460ms ease-out;
 }
 
 .board-wrap::before,
@@ -359,6 +387,55 @@ button:active {
   letter-spacing: 0.02em;
 }
 
+.controls-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.theme-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.theme-picker span {
+  font-weight: 600;
+}
+
+.theme-select {
+  appearance: none;
+  border: 1px solid rgba(57, 214, 255, 0.22);
+  border-radius: 10px;
+  background-color: rgba(9, 12, 28, 0.95);
+  background:
+    linear-gradient(180deg, rgba(57, 214, 255, 0.12), rgba(9, 12, 28, 0.9));
+  color: var(--ink);
+  padding: 8px 28px 8px 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  cursor: pointer;
+  color-scheme: dark;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 8px 16px rgba(0, 0, 0, 0.25);
+}
+
+.theme-select option {
+  background: var(--theme-option-bg);
+  color: var(--theme-option-text);
+}
+
+.theme-select:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 2px;
+}
+
 .touch-pad {
   margin-top: 14px;
   display: grid;
@@ -412,6 +489,21 @@ button:active {
   button {
     padding: 10px 12px;
   }
+
+  .controls-side {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .theme-picker {
+    font-size: 0.84rem;
+  }
+
+  .theme-select {
+    font-size: 0.84rem;
+    padding: 7px 10px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -423,27 +515,57 @@ button:active {
 
 @keyframes board-shake {
   0% {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
-  12% {
-    transform: translate3d(-8px, 2px, 0);
+  8% {
+    transform: translate3d(-12px, 3px, 0) rotate(-0.7deg) scale(0.998);
   }
-  24% {
-    transform: translate3d(7px, -2px, 0);
+  16% {
+    transform: translate3d(11px, -3px, 0) rotate(0.65deg) scale(1.002);
+  }
+  26% {
+    transform: translate3d(-10px, -2px, 0) rotate(-0.55deg);
   }
   38% {
-    transform: translate3d(-6px, -1px, 0);
+    transform: translate3d(8px, 2px, 0) rotate(0.45deg);
   }
-  52% {
-    transform: translate3d(5px, 2px, 0);
+  50% {
+    transform: translate3d(-6px, -2px, 0) rotate(-0.35deg);
   }
-  68% {
-    transform: translate3d(-3px, -1px, 0);
+  64% {
+    transform: translate3d(4px, 1px, 0) rotate(0.22deg);
   }
-  84% {
-    transform: translate3d(2px, 1px, 0);
+  78% {
+    transform: translate3d(-3px, -1px, 0) rotate(-0.12deg);
   }
   100% {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes board-hit-flash {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  16% {
+    opacity: 0.92;
+    transform: scale(1.006);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes overlay-hit {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  20% {
+    transform: translateY(-1px) scale(1.015);
+  }
+  100% {
+    transform: translateY(0) scale(1);
   }
 }
