@@ -3,13 +3,12 @@ import { playMusicTick, playTone, resumeAudioContext } from '../lib/audio.js';
 import {
   BASE_TICK_MS,
   BOARD_PX,
-  CELLS,
   DIRECTIONS,
-  MIN_TICK_MS,
   OPPOSITES,
   STORAGE_KEY
 } from '../lib/constants.js';
 import { drawGame } from '../lib/drawGame.js';
+import { createInitialGame, stepGameState } from '../lib/gameLogic.js';
 
 function readBestScore() {
   try {
@@ -25,37 +24,6 @@ function persistBestScore(score) {
   } catch {
     // Ignore storage failures.
   }
-}
-
-function spawnFood(snake) {
-  let position;
-  do {
-    position = {
-      x: Math.floor(Math.random() * CELLS),
-      y: Math.floor(Math.random() * CELLS)
-    };
-  } while (snake.some((part) => part.x === position.x && part.y === position.y));
-  return position;
-}
-
-function createInitialGame(bestScore) {
-  const mid = Math.floor(CELLS / 2);
-  const snake = [
-    { x: mid, y: mid },
-    { x: mid - 1, y: mid },
-    { x: mid - 2, y: mid }
-  ];
-
-  return {
-    snake,
-    food: spawnFood(snake),
-    direction: 'right',
-    queuedDirection: 'right',
-    score: 0,
-    bestScore,
-    tickMs: BASE_TICK_MS,
-    status: 'idle'
-  };
 }
 
 function keyToDirection(key) {
@@ -197,70 +165,21 @@ export function useSnakeGame() {
 
   function stepGame() {
     setGame((prev) => {
-      if (prev.status !== 'running') return prev;
+      const { nextGame, outcome } = stepGameState(prev);
+      if (!outcome.changed) return nextGame;
 
-      const direction = prev.queuedDirection;
-      const head = prev.snake[0];
-      const nextHead = {
-        x: head.x + DIRECTIONS[direction].x,
-        y: head.y + DIRECTIONS[direction].y
-      };
+      if (outcome.bestScoreChanged) {
+        persistBestScore(nextGame.bestScore);
+      }
 
-      const hitsWall =
-        nextHead.x < 0 ||
-        nextHead.y < 0 ||
-        nextHead.x >= CELLS ||
-        nextHead.y >= CELLS;
-
-      const grows = nextHead.x === prev.food.x && nextHead.y === prev.food.y;
-      const bodyToCheck = grows ? prev.snake : prev.snake.slice(0, -1);
-      const hitsSelf = bodyToCheck.some(
-        (part) => part.x === nextHead.x && part.y === nextHead.y
-      );
-
-      if (hitsWall || hitsSelf) {
-        const nextBest = Math.max(prev.bestScore, prev.score);
-        if (nextBest !== prev.bestScore) {
-          persistBestScore(nextBest);
-        }
+      if (outcome.gameOver) {
         playFx(180, 0.15, 'square', 0.03);
         setTimeout(() => playFx(130, 0.22, 'square', 0.03), 90);
-        return {
-          ...prev,
-          bestScore: nextBest,
-          status: 'gameover'
-        };
-      }
-
-      const nextSnake = [nextHead, ...prev.snake];
-      let nextScore = prev.score;
-      let nextFood = prev.food;
-      let nextTickMs = prev.tickMs;
-
-      if (grows) {
-        nextScore += 10;
+      } else if (outcome.ateFood) {
         playFx(880, 0.06, 'triangle', 0.018);
-        nextFood = spawnFood(nextSnake);
-        nextTickMs = Math.max(MIN_TICK_MS, BASE_TICK_MS - Math.floor(nextScore / 30) * 5);
-      } else {
-        nextSnake.pop();
       }
 
-      const nextBest = Math.max(prev.bestScore, nextScore);
-      if (nextBest !== prev.bestScore) {
-        persistBestScore(nextBest);
-      }
-
-      return {
-        ...prev,
-        snake: nextSnake,
-        food: nextFood,
-        direction,
-        queuedDirection: direction,
-        score: nextScore,
-        bestScore: nextBest,
-        tickMs: nextTickMs
-      };
+      return nextGame;
     });
   }
 
