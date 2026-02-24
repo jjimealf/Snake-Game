@@ -29,20 +29,6 @@ npm run dev
 
 Luego abre la URL que muestra Vite (normalmente `http://localhost:5173`).
 
-## Build de producción
-
-```bash
-npm run build
-```
-
-Salida generada en `dist/`.
-
-## Preview del build
-
-```bash
-npm run preview
-```
-
 ## Controles del juego
 
 - `Flechas` o `WASD`: mover la serpiente
