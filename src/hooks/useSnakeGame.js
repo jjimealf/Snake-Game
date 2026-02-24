@@ -72,8 +72,10 @@ function getOverlayCopy(status) {
 
 export function useSnakeGame() {
   const canvasRef = useRef(null);
+  const gameRef = useRef(null);
   const gameTimerRef = useRef(null);
   const musicTimerRef = useRef(null);
+  const renderFrameRef = useRef(null);
   const audioContextRef = useRef(null);
   const musicStepRef = useRef(0);
   const musicEnabledRef = useRef(false);
@@ -81,6 +83,7 @@ export function useSnakeGame() {
   const [game, setGame] = useState(() => createInitialGame(readBestScore()));
   const [musicEnabled, setMusicEnabled] = useState(false);
 
+  gameRef.current = game;
   musicEnabledRef.current = musicEnabled;
 
   function clearGameLoop() {
@@ -195,10 +198,26 @@ export function useSnakeGame() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return undefined;
+
     const ctx = canvas.getContext('2d');
-    drawGame(ctx, game);
-  }, [game]);
+
+    const render = () => {
+      if (gameRef.current) {
+        drawGame(ctx, gameRef.current);
+      }
+      renderFrameRef.current = requestAnimationFrame(render);
+    };
+
+    renderFrameRef.current = requestAnimationFrame(render);
+
+    return () => {
+      if (renderFrameRef.current !== null) {
+        cancelAnimationFrame(renderFrameRef.current);
+        renderFrameRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     clearGameLoop();
@@ -259,6 +278,10 @@ export function useSnakeGame() {
     () => () => {
       clearGameLoop();
       clearMusicLoop();
+      if (renderFrameRef.current !== null) {
+        cancelAnimationFrame(renderFrameRef.current);
+        renderFrameRef.current = null;
+      }
     },
     []
   );

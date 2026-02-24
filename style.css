@@ -1,18 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;700&display=swap');
+
 :root {
-  --bg-1: #f3efe3;
-  --bg-2: #d8e7d3;
-  --panel: rgba(255, 255, 255, 0.85);
-  --ink: #1f2a1f;
-  --muted: #5c6b5d;
-  --accent: #1d7a4b;
-  --accent-2: #f4a31d;
-  --danger: #b9362f;
-  --grid: rgba(0, 0, 0, 0.08);
-  --cell: #195f3a;
-  --head: #0f4127;
-  --food: #b9362f;
-  --shadow: 0 18px 40px rgba(17, 34, 20, 0.18);
-  --radius: 18px;
+  --bg-1: #05060f;
+  --bg-2: #111427;
+  --bg-3: #08131b;
+  --panel: rgba(9, 12, 28, 0.86);
+  --panel-edge: rgba(95, 130, 255, 0.22);
+  --ink: #eef3ff;
+  --muted: #9cadcb;
+  --accent: #15d48a;
+  --accent-2: #ffb323;
+  --danger: #ff4d6d;
+  --cyan: #39d6ff;
+  --pink: #ff5ee5;
+  --shadow: 0 26px 70px rgba(0, 0, 0, 0.55);
+  --radius: 20px;
 }
 
 * {
@@ -26,21 +28,67 @@ body {
   place-items: center;
   color: var(--ink);
   background:
-    radial-gradient(circle at 12% 10%, rgba(244, 163, 29, 0.18), transparent 42%),
-    radial-gradient(circle at 88% 14%, rgba(29, 122, 75, 0.15), transparent 38%),
-    linear-gradient(160deg, var(--bg-1), var(--bg-2));
-  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    radial-gradient(circle at 16% 12%, rgba(255, 94, 229, 0.16), transparent 42%),
+    radial-gradient(circle at 85% 8%, rgba(57, 214, 255, 0.15), transparent 38%),
+    radial-gradient(circle at 52% 120%, rgba(21, 212, 138, 0.14), transparent 55%),
+    linear-gradient(160deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
   padding: 18px;
+  overflow-x: hidden;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+body::before {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.018) 0,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  opacity: 0.25;
+}
+
+body::after {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.06), transparent 45%),
+    radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.04), transparent 50%);
+  mix-blend-mode: screen;
 }
 
 .game-shell {
   width: min(94vw, 680px);
   background: var(--panel);
-  border: 1px solid rgba(31, 42, 31, 0.08);
+  border: 1px solid var(--panel-edge);
   border-radius: 24px;
   box-shadow: var(--shadow);
   padding: 18px;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px) saturate(1.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.game-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(57, 214, 255, 0.08), transparent 35%),
+    linear-gradient(315deg, rgba(255, 94, 229, 0.06), transparent 40%);
+  pointer-events: none;
+}
+
+.game-shell > * {
+  position: relative;
+  z-index: 1;
 }
 
 .topbar {
@@ -54,9 +102,14 @@ body {
 
 .title {
   margin: 0;
-  font-size: 1.15rem;
-  letter-spacing: 0.08em;
+  font-size: 1rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  font-family: "Press Start 2P", monospace;
+  color: #dff7ff;
+  text-shadow:
+    0 0 10px rgba(57, 214, 255, 0.35),
+    0 0 24px rgba(57, 214, 255, 0.2);
 }
 
 .stats {
@@ -66,25 +119,62 @@ body {
 }
 
 .pill {
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(25, 95, 58, 0.08);
-  border: 1px solid rgba(25, 95, 58, 0.12);
-  font-size: 0.9rem;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(8, 13, 30, 0.85);
+  border: 1px solid rgba(97, 121, 197, 0.28);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 10px 20px rgba(0, 0, 0, 0.25);
+  font-size: 0.85rem;
   color: var(--muted);
+  letter-spacing: 0.03em;
 }
 
 .pill strong {
-  color: var(--ink);
+  color: #d8fff3;
   margin-left: 6px;
+  text-shadow: 0 0 12px rgba(21, 212, 138, 0.35);
 }
 
 .board-wrap {
   position: relative;
   border-radius: var(--radius);
   overflow: hidden;
-  border: 1px solid rgba(31, 42, 31, 0.12);
-  background: #f9f8f1;
+  border: 1px solid rgba(57, 214, 255, 0.3);
+  background: #070b15;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    inset 0 0 30px rgba(57, 214, 255, 0.05),
+    0 18px 32px rgba(0, 0, 0, 0.35);
+}
+
+.board-wrap::before,
+.board-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.board-wrap::before {
+  background:
+    radial-gradient(circle at 25% 15%, rgba(57, 214, 255, 0.08), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(255, 94, 229, 0.08), transparent 55%);
+}
+
+.board-wrap::after {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.025) 0,
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  opacity: 0.28;
+  mix-blend-mode: screen;
 }
 
 canvas {
@@ -92,10 +182,9 @@ canvas {
   width: 100%;
   height: auto;
   aspect-ratio: 1 / 1;
-  background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.015) 1px, transparent 1px) 0 0 / 24px 24px,
-    linear-gradient(rgba(0, 0, 0, 0.015) 1px, transparent 1px) 0 0 / 24px 24px,
-    #eef4e8;
+  background: #060913;
+  position: relative;
+  z-index: 0;
 }
 
 .overlay {
@@ -104,9 +193,19 @@ canvas {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.82));
+  background:
+    linear-gradient(rgba(5, 8, 20, 0.74), rgba(5, 8, 20, 0.84)),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 4px
+    );
   text-align: center;
-  transition: opacity 120ms ease;
+  transition: opacity 140ms ease;
+  backdrop-filter: blur(2px);
+  z-index: 2;
 }
 
 .overlay.hidden {
@@ -115,24 +214,32 @@ canvas {
 }
 
 .overlay-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 18px;
-  border: 1px solid rgba(31, 42, 31, 0.1);
-  box-shadow: 0 10px 24px rgba(31, 42, 31, 0.08);
-  padding: 16px 18px;
+  background:
+    linear-gradient(180deg, rgba(16, 20, 42, 0.96), rgba(9, 12, 28, 0.96));
+  border-radius: 16px;
+  border: 1px solid rgba(57, 214, 255, 0.22);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 12px 34px rgba(0, 0, 0, 0.4),
+    0 0 28px rgba(57, 214, 255, 0.08);
+  padding: 18px 18px 16px;
   max-width: 360px;
 }
 
 .overlay-card h2 {
   margin: 0 0 8px;
-  font-size: 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  font-family: "Press Start 2P", monospace;
+  color: #e4f8ff;
+  text-shadow: 0 0 14px rgba(57, 214, 255, 0.25);
 }
 
 .overlay-card p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.35;
-  font-size: 0.95rem;
+  line-height: 1.45;
+  font-size: 0.92rem;
 }
 
 .controls {
@@ -152,26 +259,65 @@ canvas {
 
 button {
   appearance: none;
-  border: none;
+  border: 1px solid rgba(21, 212, 138, 0.36);
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: 10px;
   font: inherit;
   cursor: pointer;
-  color: white;
-  background: var(--accent);
-  box-shadow: 0 6px 14px rgba(29, 122, 75, 0.25);
-  transition: transform 80ms ease, filter 120ms ease;
+  color: #eafff8;
+  background:
+    linear-gradient(180deg, rgba(21, 212, 138, 0.28), rgba(9, 24, 18, 0.9));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 8px 18px rgba(0, 0, 0, 0.35),
+    0 0 16px rgba(21, 212, 138, 0.12);
+  transition:
+    transform 80ms ease,
+    filter 120ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+  font-weight: 600;
 }
 
 button.secondary {
-  background: #53635a;
-  box-shadow: 0 6px 14px rgba(83, 99, 90, 0.2);
+  border-color: rgba(57, 214, 255, 0.28);
+  background:
+    linear-gradient(180deg, rgba(57, 214, 255, 0.18), rgba(10, 16, 34, 0.92));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 8px 18px rgba(0, 0, 0, 0.35),
+    0 0 16px rgba(57, 214, 255, 0.08);
 }
 
 button.warn {
-  background: var(--accent-2);
-  color: #1f1b12;
-  box-shadow: 0 6px 14px rgba(244, 163, 29, 0.25);
+  border-color: rgba(255, 179, 35, 0.34);
+  background:
+    linear-gradient(180deg, rgba(255, 179, 35, 0.28), rgba(34, 20, 6, 0.9));
+  color: #fff4d8;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 8px 18px rgba(0, 0, 0, 0.35),
+    0 0 16px rgba(255, 179, 35, 0.1);
+}
+
+button:hover {
+  filter: brightness(1.08);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  filter: saturate(0.7);
+}
+
+button:disabled:hover {
+  filter: saturate(0.7);
 }
 
 button:active {
@@ -180,7 +326,8 @@ button:active {
 
 .hint {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
 }
 
 .touch-pad {
@@ -200,14 +347,47 @@ button:active {
 .touch-btn {
   width: 56px;
   height: 56px;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 0;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: bold;
+  font-family: "Press Start 2P", monospace;
+  line-height: 1;
 }
 
 @media (min-width: 720px) {
   .touch-pad {
     display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .game-shell {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .title {
+    font-size: 0.82rem;
+  }
+
+  .pill {
+    font-size: 0.8rem;
+    padding: 8px 10px;
+  }
+
+  .overlay-card h2 {
+    font-size: 0.82rem;
+  }
+
+  button {
+    padding: 10px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
   }
 }
