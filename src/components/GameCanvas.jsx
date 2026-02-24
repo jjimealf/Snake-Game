@@ -3,10 +3,11 @@ export default function GameCanvas({
   boardSize,
   overlayTitle,
   overlayText,
-  overlayHidden
+  overlayHidden,
+  boardShaking
 }) {
   return (
-    <section className="board-wrap" aria-label="Tablero">
+    <section className={`board-wrap${boardShaking ? ' is-shaking' : ''}`} aria-label="Tablero">
       <canvas ref={canvasRef} width={boardSize} height={boardSize}></canvas>
       <div className={`overlay${overlayHidden ? ' hidden' : ''}`}>
         <div className="overlay-card">

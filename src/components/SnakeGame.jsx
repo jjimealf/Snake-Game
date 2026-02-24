@@ -9,6 +9,7 @@ export default function SnakeGame() {
     canvasRef,
     overlay,
     overlayHidden,
+    boardShaking,
     speedFactor,
     audioSupported,
     musicEnabled,
@@ -44,6 +45,7 @@ export default function SnakeGame() {
         overlayTitle={overlay.title}
         overlayText={overlay.text}
         overlayHidden={overlayHidden}
+        boardShaking={boardShaking}
       />
 
       <Controls

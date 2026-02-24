@@ -78,12 +78,14 @@ export function useSnakeGame() {
   const musicTimerRef = useRef(null);
   const renderFrameRef = useRef(null);
   const renderLastTimeRef = useRef(null);
+  const shakeTimeoutRef = useRef(null);
   const audioContextRef = useRef(null);
   const musicStepRef = useRef(0);
   const musicEnabledRef = useRef(false);
 
   const [game, setGame] = useState(() => createInitialGame(readBestScore()));
   const [musicEnabled, setMusicEnabled] = useState(false);
+  const [boardShaking, setBoardShaking] = useState(false);
 
   gameRef.current = game;
   musicEnabledRef.current = musicEnabled;
@@ -100,6 +102,23 @@ export function useSnakeGame() {
       clearInterval(musicTimerRef.current);
       musicTimerRef.current = null;
     }
+  }
+
+  function triggerBoardShake() {
+    setBoardShaking(false);
+    if (shakeTimeoutRef.current !== null) {
+      clearTimeout(shakeTimeoutRef.current);
+      shakeTimeoutRef.current = null;
+    }
+
+    // Force restart animation on repeated collisions.
+    requestAnimationFrame(() => {
+      setBoardShaking(true);
+      shakeTimeoutRef.current = setTimeout(() => {
+        setBoardShaking(false);
+        shakeTimeoutRef.current = null;
+      }, 320);
+    });
   }
 
   function playFx(freq, duration, type, volume) {
@@ -178,6 +197,7 @@ export function useSnakeGame() {
       }
 
       if (outcome.gameOver) {
+        triggerBoardShake();
         playFx(180, 0.15, 'square', 0.03);
         setTimeout(() => playFx(130, 0.22, 'square', 0.03), 90);
       } else if (outcome.ateFood) {
@@ -230,6 +250,10 @@ export function useSnakeGame() {
       if (renderFrameRef.current !== null) {
         cancelAnimationFrame(renderFrameRef.current);
         renderFrameRef.current = null;
+      }
+      if (shakeTimeoutRef.current !== null) {
+        clearTimeout(shakeTimeoutRef.current);
+        shakeTimeoutRef.current = null;
       }
       renderLastTimeRef.current = null;
     };
@@ -298,6 +322,10 @@ export function useSnakeGame() {
         cancelAnimationFrame(renderFrameRef.current);
         renderFrameRef.current = null;
       }
+      if (shakeTimeoutRef.current !== null) {
+        clearTimeout(shakeTimeoutRef.current);
+        shakeTimeoutRef.current = null;
+      }
       renderLastTimeRef.current = null;
     },
     []
@@ -316,6 +344,7 @@ export function useSnakeGame() {
     canvasRef,
     overlay,
     overlayHidden,
+    boardShaking,
     speedFactor,
     audioSupported,
     musicEnabled,
