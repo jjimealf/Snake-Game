@@ -1,44 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-
-const BOARD_PX = 480;
-const GRID_SIZE = 24;
-const CELLS = BOARD_PX / GRID_SIZE;
-const BASE_TICK_MS = 130;
-const MIN_TICK_MS = 65;
-const STORAGE_KEY = 'snake-best-score';
-
-const DIRECTIONS = {
-  up: { x: 0, y: -1 },
-  down: { x: 0, y: 1 },
-  left: { x: -1, y: 0 },
-  right: { x: 1, y: 0 }
-};
-
-const OPPOSITES = {
-  up: 'down',
-  down: 'up',
-  left: 'right',
-  right: 'left'
-};
-
-const MUSIC_PATTERN = [
-  { freq: 392.0, len: 1 },
-  { freq: 523.25, len: 1 },
-  { freq: 659.25, len: 1 },
-  { freq: 523.25, len: 1 },
-  { freq: 392.0, len: 1 },
-  { freq: 329.63, len: 1 },
-  { freq: 392.0, len: 1 },
-  { freq: 0, len: 1 },
-  { freq: 440.0, len: 1 },
-  { freq: 587.33, len: 1 },
-  { freq: 698.46, len: 1 },
-  { freq: 587.33, len: 1 },
-  { freq: 440.0, len: 1 },
-  { freq: 349.23, len: 1 },
-  { freq: 440.0, len: 1 },
-  { freq: 0, len: 1 }
-];
+import { playMusicTick, playTone, resumeAudioContext } from '../lib/audio.js';
+import {
+  BASE_TICK_MS,
+  BOARD_PX,
+  CELLS,
+  DIRECTIONS,
+  MIN_TICK_MS,
+  OPPOSITES,
+  STORAGE_KEY
+} from '../lib/constants.js';
+import { drawGame } from '../lib/drawGame.js';
 
 function readBestScore() {
   try {
@@ -110,82 +81,6 @@ function keyToDirection(key) {
   }
 }
 
-function roundRect(context, x, y, width, height, radius) {
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.arcTo(x + width, y, x + width, y + height, radius);
-  context.arcTo(x + width, y + height, x, y + height, radius);
-  context.arcTo(x, y + height, x, y, radius);
-  context.arcTo(x, y, x + width, y, radius);
-  context.closePath();
-}
-
-function drawGrid(ctx) {
-  ctx.save();
-  ctx.strokeStyle = 'rgba(0,0,0,0.05)';
-  ctx.lineWidth = 1;
-
-  for (let i = 0; i <= CELLS; i += 1) {
-    const p = i * GRID_SIZE + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(p, 0);
-    ctx.lineTo(p, BOARD_PX);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, p);
-    ctx.lineTo(BOARD_PX, p);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-function drawFood(ctx, food) {
-  const x = food.x * GRID_SIZE;
-  const y = food.y * GRID_SIZE;
-  ctx.save();
-  ctx.fillStyle = '#b9362f';
-  ctx.beginPath();
-  ctx.arc(x + GRID_SIZE / 2, y + GRID_SIZE / 2, GRID_SIZE * 0.34, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#2f7f3d';
-  ctx.fillRect(x + GRID_SIZE * 0.5, y + GRID_SIZE * 0.08, 3, 8);
-  ctx.restore();
-}
-
-function drawSnake(ctx, snake, direction, status) {
-  const flash = status === 'gameover';
-
-  snake.forEach((part, index) => {
-    const x = part.x * GRID_SIZE;
-    const y = part.y * GRID_SIZE;
-    const isHead = index === 0;
-
-    ctx.fillStyle = flash ? '#9f2c28' : isHead ? '#0f4127' : '#195f3a';
-    roundRect(ctx, x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2, isHead ? 7 : 6);
-    ctx.fill();
-
-    if (!isHead) return;
-
-    ctx.fillStyle = '#eef4e8';
-    const eyeOffsetX = direction === 'left' ? 7 : direction === 'right' ? GRID_SIZE - 10 : 8;
-    const eyeOffsetY1 = direction === 'up' ? 7 : 8;
-    const eyeOffsetY2 = direction === 'down' ? GRID_SIZE - 10 : GRID_SIZE - 12;
-    const xEye = x + eyeOffsetX;
-    ctx.beginPath();
-    ctx.arc(xEye, y + eyeOffsetY1, 2, 0, Math.PI * 2);
-    ctx.arc(xEye, y + eyeOffsetY2, 2, 0, Math.PI * 2);
-    ctx.fill();
-  });
-}
-
-function drawGame(ctx, game) {
-  ctx.clearRect(0, 0, BOARD_PX, BOARD_PX);
-  drawGrid(ctx);
-  drawFood(ctx, game.food);
-  drawSnake(ctx, game.snake, game.direction, game.status);
-}
-
 function getOverlayCopy(status) {
   switch (status) {
     case 'paused':
@@ -234,48 +129,23 @@ export function useSnakeGame() {
     }
   }
 
-  function getAudioContext() {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return null;
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioCtx();
-    }
-    return audioContextRef.current;
+  function playFx(freq, duration, type, volume) {
+    playTone({
+      audioContextRef,
+      musicEnabledRef,
+      freq,
+      duration,
+      type,
+      volume
+    });
   }
 
-  function playTone(freq, duration = 0.1, type = 'square', volume = 0.02) {
-    if (!musicEnabledRef.current) return;
-
-    const ctx = getAudioContext();
-    if (!ctx || !freq) return;
-
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
-
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + duration + 0.02);
-  }
-
-  function playMusicTick() {
-    if (!musicEnabledRef.current) return;
-    const note = MUSIC_PATTERN[musicStepRef.current % MUSIC_PATTERN.length];
-    musicStepRef.current += 1;
-    if (note.freq > 0) {
-      playTone(note.freq, 0.14 * note.len, 'square', 0.012);
-    }
+  function playMusicStep() {
+    playMusicTick({
+      audioContextRef,
+      musicEnabledRef,
+      musicStepRef
+    });
   }
 
   function handleDirection(nextDirection) {
@@ -353,8 +223,8 @@ export function useSnakeGame() {
         if (nextBest !== prev.bestScore) {
           persistBestScore(nextBest);
         }
-        playTone(180, 0.15, 'square', 0.03);
-        setTimeout(() => playTone(130, 0.22, 'square', 0.03), 90);
+        playFx(180, 0.15, 'square', 0.03);
+        setTimeout(() => playFx(130, 0.22, 'square', 0.03), 90);
         return {
           ...prev,
           bestScore: nextBest,
@@ -369,7 +239,7 @@ export function useSnakeGame() {
 
       if (grows) {
         nextScore += 10;
-        playTone(880, 0.06, 'triangle', 0.018);
+        playFx(880, 0.06, 'triangle', 0.018);
         nextFood = spawnFood(nextSnake);
         nextTickMs = Math.max(MIN_TICK_MS, BASE_TICK_MS - Math.floor(nextScore / 30) * 5);
       } else {
@@ -398,10 +268,7 @@ export function useSnakeGame() {
     setMusicEnabled((prev) => {
       const next = !prev;
       if (next) {
-        const ctx = getAudioContext();
-        if (ctx && ctx.state === 'suspended') {
-          ctx.resume().catch(() => {});
-        }
+        resumeAudioContext(audioContextRef);
       }
       return next;
     });
@@ -429,18 +296,14 @@ export function useSnakeGame() {
       return undefined;
     }
 
-    const ctx = getAudioContext();
+    const ctx = resumeAudioContext(audioContextRef);
     if (!ctx) {
       setMusicEnabled(false);
       return undefined;
     }
 
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
-
-    playMusicTick();
-    musicTimerRef.current = setInterval(playMusicTick, 170);
+    playMusicStep();
+    musicTimerRef.current = setInterval(playMusicStep, 170);
     return clearMusicLoop;
   }, [musicEnabled, game.status]);
 
